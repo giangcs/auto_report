@@ -39,6 +39,19 @@
 <script>
     const { ipcRenderer } = require('electron');
 
+    document.addEventListener('DOMContentLoaded', () => {
+        // Load saved selections when the page loads
+        ipcRenderer.send('load-selections');
+    });
+
+    ipcRenderer.on('load-selections-reply', (event, savedSelections) => {
+        if (savedSelections) {
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = savedSelections.includes(checkbox.value);
+            });
+        }
+    });
+
     document.getElementById('runScript').addEventListener('click', () => {
         const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
             .map(checkbox => checkbox.value);
