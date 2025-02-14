@@ -1,8 +1,9 @@
 {
   "name": "auto_report_cms",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -10,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "electron": "^34.2.0",
     "playwright": "^1.50.1",
     "puppeteer": "^18.2.1"
   }

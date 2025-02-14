@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Groups</title>
+  <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      label { display: block; font-size: 16px; margin-bottom: 8px; color: #333; }
+      input[type="checkbox"] { margin-right: 10px; }
+      .group { font-weight: bold; color: #007BFF; }
+      .separator { padding: 0 5px; color: #ff6600; font-weight: bold; }
+  </style>
+</head>
+<body>
+<h2>Select Groups:</h2>
+
+<label><input type="checkbox" value="LGCNS/LandingZone-AWS"> <span class="group">LGCNS</span><span class="separator"> / </span>LandingZone-AWS</label>
+<label><input type="checkbox" value="LGCNS/Singlex"> <span class="group">LGCNS</span><span class="separator"> / </span>Singlex</label>
+<label><input type="checkbox" value="LGCNS/WIRE_ITSM"> <span class="group">LGCNS</span><span class="separator"> / </span>WIRE_ITSM</label>
+<label><input type="checkbox" value="LGCNS/CloudXper"> <span class="group">LGCNS</span><span class="separator"> / </span>CloudXper</label>
+<label><input type="checkbox" value="hanwhalifefs/ALL"> <span class="group">hanwhalifefs</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="LGCNS/HWGI"> <span class="group">LGCNS</span><span class="separator"> / </span>HWGI</label>
+<label><input type="checkbox" value="Pantos/GCP"> <span class="group">Pantos</span><span class="separator"> / </span>GCP</label>
+<label><input type="checkbox" value="DNO/ALL"> <span class="group">DNO</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="SNI/ALL"> <span class="group">SNI</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="XICNA/ALL"> <span class="group">XICNA</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="LGCC/ALL"> <span class="group">LGCC</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="Dongwha/ALL"> <span class="group">Dongwha</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="Pantos/LSP_Pantos"> <span class="group">Pantos</span><span class="separator"> / </span>LSP_Pantos</label>
+<label><input type="checkbox" value="KOREARATINGS/ALL"> <span class="group">KOREARATINGS</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" value="Corp.LG/LG_Careers"> <span class="group">Corp.LG</span><span class="separator"> / </span>LG_Careers</label>
+<label><input type="checkbox" value="Corp.LG/LX_Careers"> <span class="group">Corp.LG</span><span class="separator"> / </span>LX_Careers</label>
+<label><input type="checkbox" value="LG_Sports/LG_Sports"> <span class="group">LG_Sports</span><span class="separator"> / </span>LG_Sports</label>
+<label><input type="checkbox" value="Pantos/LSP_Lges"> <span class="group">Pantos</span><span class="separator"> / </span>LSP_Lges</label>
+
+<button id="runScript">Run Script</button>
+
+<script>
+    const { ipcRenderer } = require('electron');
+
+    document.getElementById('runScript').addEventListener('click', () => {
+        const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.value);
+
+        ipcRenderer.send('run-playwright', selectedValues); // Send values to the main process
+    });
+</script>
+</body>
+</html>
