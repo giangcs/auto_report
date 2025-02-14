@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 
 
 (async () => {
+    // INPUT EXPECTED GROUP NAME
     let filePath = './organizationGroupInput.txt';
     const groups = await getParentChildGroups(filePath);
 
@@ -9,21 +10,18 @@ const { chromium } = require('playwright');
     const page = await browser.newPage();
 
     // LOGIN PAGE
-
-    // Navigate to the login page
     await page.goto('https://console.cms.lgcns.com/login.do');
-
     await page.fill('#login_id', 'GDC_COMMON');
     await page.fill('#passwd', '1234qwer!');
-
     await page.click('button[type="submit"]');
-    // Use waitForURL or waitForLoadState instead of waitForNavigation
+
+    // GO TO EVENT CONSOLE PAGE
     await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
 
     for (const { parentGroup, childGroup } of groups) {
         await checkExcelEventConsole(page, parentGroup, childGroup);
 
-        // Go to the eventConsole page
+        // Go to the eventHistory page
         await page.waitForSelector('a[href="/front/eventHistory.do"]'); // Wait for the link to be visible
         await page.click('a[href="/front/eventHistory.do"]'); // Click on the link
 
@@ -32,7 +30,6 @@ const { chromium } = require('playwright');
         await page.click('a[href="/front/eventConsole.do"]'); // Click on the link
         await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
     }
-
 
     await page.waitForTimeout(10);
 
@@ -158,14 +155,6 @@ async function downloadFile(page, parentGroup, childGroup) {
     const downloadFileName = `${todayDate}_${todayDateDM}_${parentGroup}_${childGroup}_eventHistory.xlsx`;
     const downloadFilePath = path.join(downloadPath, downloadFileName);
 
-    // const downloadPath = './downloads';  // Change this to your desired download folder path
-
-    // Create the downloads folder if it doesn't exist (optional)
-    // const fs = require('fs');
-    // if (!fs.existsSync(downloadPath)) {
-    //     fs.mkdirSync(downloadPath);
-    // }
-
     // Listen for the download event
     page.on('download', (download) => {
         console.log(`Download started: ${downloadFilePath}`);
@@ -211,8 +200,7 @@ const {promises: fs1} = require("fs");
 // Function to check the condition and take a screenshot accordingly
 async function captureAndGetDownReportEventConsole(page, parentGroup, childGroup) {
     // SCREENSHOT
-    // Check if grid-canvas has ui-widget-content
-    const hasUiWidgetContent = await page.$('.grid-canvas.grid-canvas-top .ui-widget-content.slick-row');
+    // const hasUiWidgetContent = await page.$('.grid-canvas.grid-canvas-top .ui-widget-content.slick-row');
     // Get today's date and folder path
     const todayDate = getTodayDate();
     const timestamp = getTimestampForFileName();
@@ -230,7 +218,7 @@ async function captureAndGetDownReportEventConsole(page, parentGroup, childGroup
     console.log(`Screenshot saved successfully at: ${screenshotFilePath}`);
 
     // GET DOWN RECORD
-    const folderPath2 = path.join(__dirname, 'eventStatusDown', todayDate);
+    const folderPath2 = path.join(__dirname, 'event_status_down', todayDate);
     await fs.mkdir(folderPath2, { recursive: true });
     let filePath2 = `${timestamp}_${parentGroup}_${childGroup}_output_DOWN_data.txt`;
     const outputFilePath = path.join(folderPath2, filePath2);

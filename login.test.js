@@ -2,6 +2,9 @@ const { chromium } = require('playwright');
 
 
 (async () => {
+    let filePath = './organizationGroupInput.txt';
+    const groups = await getParentChildGroups(filePath);
+
     const browser = await chromium.launch({ headless: false });
     const page = await browser.newPage();
 
@@ -14,70 +17,112 @@ const { chromium } = require('playwright');
     await page.fill('#passwd', '1234qwer!');
 
     await page.click('button[type="submit"]');
-    // Step 3: Use waitForURL or waitForLoadState instead of waitForNavigation
-    await page.waitForURL('https://console.cms.lgcns.com/front/eventConsole.do');  // Wait for specific URL
-    // Or alternatively, use `waitForLoadState()` if you want to wait for the page to load completely
-    // await page.waitForLoadState('load');  // This waits for the page to fully load
+    // Use waitForURL or waitForLoadState instead of waitForNavigation
+    await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
 
-    // Step 4: Get all open pages (windows/tabs)
-    const contexts = await browser.contexts(); // Get all browser contexts
-    const allPages = await contexts[0].pages();
+    for (const { parentGroup, childGroup } of groups) {
+        await checkExcelEventConsole(page, parentGroup, childGroup);
 
-    // Step 5: Close the unwanted page (check URL)
-    for (let i = 0; i < allPages.length; i++) {
-        const pageUrl = allPages[i].url();
-        if (pageUrl !== 'https://console.cms.lgcns.com/front/eventConsole.do') {
-            // Close the unwanted page
-            await allPages[i].close();
-        }
+        // Go to the eventConsole page
+        await page.waitForSelector('a[href="/front/eventHistory.do"]'); // Wait for the link to be visible
+        await page.click('a[href="/front/eventHistory.do"]'); // Click on the link
+
+        await checkEventHistory(page, parentGroup, childGroup);
+
+        await page.click('a[href="/front/eventConsole.do"]'); // Click on the link
+        await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
     }
 
-    await checkExcelEventConsole(page);
 
-    // Go to the eventConsole page
-    await page.waitForSelector('a[href="/front/eventHistory.do"]'); // Wait for the link to be visible
-    await page.click('a[href="/front/eventHistory.do"]'); // Click on the link
-
-    await checkEventHistory(page);
-
-
-    await page.waitForTimeout(10);  // Wait for 3 seconds (adjust as needed)
+    await page.waitForTimeout(10);
 
     // Close browser
     // await browser.close();
 })();
 
+// eventConsole page all open an unused window=> this function to delete it
+async function closeUnwantedPages(page, browser, allowedUrl) {
+    await page.waitForURL(allowedUrl);
 
-async function checkEventHistory(page) {
-    await page.click('.input-group.n-ko button');
+    const contexts = await browser.contexts(); // Get all browser contexts
+    const allPages = await contexts[0].pages(); // Get all open pages (tabs)
 
-    console.log('Waiting for Corp.LG span...');
+    for (let i = 0; i < allPages.length; i++) {
+        const pageUrl = allPages[i].url();
+        if (pageUrl !== allowedUrl) {
+            console.log(`Closing unwanted page: ${pageUrl}`);
+            await allPages[i].close();
+        }
+    }
+}
+
+// Function to expand a parent group and select a checkbox for the child group dynamically
+async function selectParentAndChildGroup(page, parentGroup, childGroup) {
+    console.log(`Waiting for ${parentGroup} span...`);
     await page.waitForSelector('span.k-in', { visible: true });
 
-        const corpLgSpan = await page.$('span.k-in:has-text("Corp.LG")');
-    if (corpLgSpan) {
-        const parentElement = await corpLgSpan.evaluateHandle(el => el.closest('div.k-mid'));
+    const parentGroupSpan = await page.$(`span.k-in:has-text("${parentGroup}")`);
+    if (parentGroupSpan) {
+        const parentElement = await parentGroupSpan.evaluateHandle(el => el.closest('div.k-mid'));
 
         const expandIcon = await parentElement.$('.k-icon.k-i-expand');
         if (expandIcon) {
             await expandIcon.click();
+            console.log(`${parentGroup} expanded.`);
         } else {
             console.log('Expand icon not found');
         }
     } else {
-        console.log('Corp.LG span not found');
+        console.log(`${parentGroup} span not found`);
     }
 
-    console.log('Waiting for LG Career span...');
-    const partialValue = "^Corp.LG^1/LG_Careers";
+    const childCheckboxValue = `^${parentGroup}^1/${childGroup}`;
+    console.log(`Waiting for checkbox with value containing ${childCheckboxValue}...`);
 
-    await page.waitForSelector(`input[name="check_common_item"][value*="${partialValue}"]`);
+    await page.waitForSelector(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
 
-// Click the checkbox
-    await page.click(`input[name="check_common_item"][value*="${partialValue}"]`);
+    // Log before clicking the checkbox
+    console.log(`Clicking the checkbox with value: ${childCheckboxValue}`);
+
+    // Click the checkbox for the child group
+    await page.click(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
 
     // click button save group
     await page.click('#common_group_apply_btn');
+}
+
+async function getParentChildGroups(filePath) {
+    const fs = require('fs');
+    // Read the content of the file synchronously
+    const fileContent = fs.readFileSync(filePath, 'utf-8'); // Read the file content as a string
+
+    // Split the content by newline, then process each line
+    const lines = fileContent.split('\n'); // Split by newline to get each group
+
+    const parentChildGroups = [];
+
+    // Loop through each line
+    for (const line of lines) {
+        // Split each line by '/' to get parent and child groups
+        const [parentGroup, childGroup] = line.split('/');
+
+        if (parentGroup && childGroup) {
+            // Push the pair to the array
+            const parentGroupSanitized = sanitizeForCSS(parentGroup);
+            const childGroupSanitized = sanitizeForCSS(childGroup);
+            parentChildGroups.push({ parentGroup: parentGroupSanitized, childGroup: childGroupSanitized });
+        } else {
+            console.log('Invalid line format (missing parent/child group):', line);
+        }
+    }
+
+    return parentChildGroups; // Return the array of parent-child groups
+}
+
+async function checkEventHistory(page, parentGroup, childGroup) {
+    await page.click('.input-group.n-ko button');
+
+    await selectParentAndChildGroup(page, parentGroup, childGroup);
 
     // filter time
     let todayDate = getTodayDateInput();
@@ -97,23 +142,34 @@ async function checkEventHistory(page) {
     // click search
     await page.click('.btn-actions-pane-right button.btn-info');
     await page.waitForTimeout(3000);
-    await downloadFile(page);
+    // DOWNLOAD FILE
+    await downloadFile(page, parentGroup, childGroup);
 
 }
-async function downloadFile(page) {
+async function downloadFile(page, parentGroup, childGroup) {
+    const fs1 = require('fs').promises;
+    const todayDate = getTodayDate();
+    const todayDateDM = getTodayDateDM();
+    const downloadPath = path.join(__dirname, 'downloads_excel', todayDate);
 
-    const downloadPath = './downloads';  // Change this to your desired download folder path
+    await fs1.mkdir(downloadPath, { recursive: true });
+
+    // Define the download filename (based on your desired format)
+    const downloadFileName = `${todayDate}_${todayDateDM}_${parentGroup}_${childGroup}_eventHistory.xlsx`;
+    const downloadFilePath = path.join(downloadPath, downloadFileName);
+
+    // const downloadPath = './downloads';  // Change this to your desired download folder path
 
     // Create the downloads folder if it doesn't exist (optional)
-    const fs = require('fs');
-    if (!fs.existsSync(downloadPath)) {
-        fs.mkdirSync(downloadPath);
-    }
+    // const fs = require('fs');
+    // if (!fs.existsSync(downloadPath)) {
+    //     fs.mkdirSync(downloadPath);
+    // }
 
     // Listen for the download event
     page.on('download', (download) => {
-        console.log(`Download started: ${download.suggestedFilename()}`);
-        download.saveAs(`${downloadPath}/${download.suggestedFilename()}`);
+        console.log(`Download started: ${downloadFilePath}`);
+        download.saveAs(downloadFilePath);
     });
 
     // Click the button to trigger the downloads
@@ -126,52 +182,20 @@ async function downloadFile(page) {
     await page.waitForTimeout(5000); // Wait for 5 seconds for the file to be downloaded
     console.log("Download should have finished.");
 }
-async function checkExcelEventConsole(page) {
+async function checkExcelEventConsole(page, parentGroup, childGroup) {
     // Click on the "Search" button to open the search filter
     await page.click('button[data-toggle="collapse"][aria-controls="eventSearchBar"]');
 
     //  Click on the "그룹선택" button
     await page.click('button[onclick="openSelectGroup(\'\')"]');
 
-    //  Wait for the popup to appear and select the checkbox
-    console.log('Waiting for Corp.LG span...');
-    await page.waitForSelector('span.k-in', { visible: true });  // Wait for the span to be visible
-
-    //  Find the Corp.LG span and click the expand icon
-    const corpLgSpan = await page.$('span.k-in:has-text("Corp.LG")');
-    if (corpLgSpan) {
-        // Log the parent element (for debugging purposes)
-        const parentElement = await corpLgSpan.evaluateHandle(el => el.closest('div.k-mid'));
-
-        // Find and click the expand icon (k-icon k-i-expand)
-        const expandIcon = await parentElement.$('.k-icon.k-i-expand');
-        if (expandIcon) {
-            console.log('Clicking on the expand icon...');
-            await expandIcon.click();
-        } else {
-            console.log('Expand icon not found');
-        }
-    } else {
-        console.log('Corp.LG span not found');
-    }
-
-    console.log('Waiting for LG Career span...');
-    const partialValue = "^Corp.LG^1/LG_Careers";
-
-    // Wait for the checkbox with the partial value to appear
-    await page.waitForSelector(`input[name="check_common_item"][value*="${partialValue}"]`);
-
-    // Click the checkbox
-    await page.click(`input[name="check_common_item"][value*="${partialValue}"]`);
-
-    // click button save group
-    await page.click('#common_group_apply_btn');
+    await selectParentAndChildGroup(page, parentGroup, childGroup);
 
     // click search
     await page.click('button[data-toggle="collapse"][aria-controls="eventSearchBar"]');
 
     // Call the function
-    await captureAndGetDownReportEventConsole(page);
+    await captureAndGetDownReportEventConsole(page, parentGroup, childGroup);
 
 }
 
@@ -184,30 +208,31 @@ async function logElementOuterHTML(page, element) {
 const fs = require('fs').promises;
 const path = require('path');
 // Function to check the condition and take a screenshot accordingly
-async function captureAndGetDownReportEventConsole(page) {
+async function captureAndGetDownReportEventConsole(page, parentGroup, childGroup) {
     // SCREENSHOT
     // Check if grid-canvas has ui-widget-content
     const hasUiWidgetContent = await page.$('.grid-canvas.grid-canvas-top .ui-widget-content.slick-row');
     // Get today's date and folder path
     const todayDate = getTodayDate();
+    const timestamp = getTimestampForFileName();
     const folderPath = path.join(__dirname, 'screenshots', todayDate);
 
 
     await fs.mkdir(folderPath, { recursive: true });
 
     // Define the screenshot filename (based on your desired format)
-    const screenshotFileName = `${todayDate}_corp_LG_event_status.png`;
+    const screenshotFileName = `${timestamp}_${parentGroup}_${childGroup}_event_status.png`;
+
     const screenshotFilePath = path.join(folderPath, screenshotFileName);
 
     await page.screenshot({ path: screenshotFilePath });
     console.log(`Screenshot saved successfully at: ${screenshotFilePath}`);
 
-    // Check if the file exists
-    await fs.access(screenshotFilePath);
-    console.log('Screenshot file exists!');
-
     // GET DOWN RECORD
-    let filePath = './eventStatusDown/output_data.txt';
+    const folderPath2 = path.join(__dirname, 'eventStatusDown', todayDate);
+    await fs.mkdir(folderPath2, { recursive: true });
+    let filePath2 = `${timestamp}_${parentGroup}_${childGroup}_output_DOWN_data.txt`;
+    const outputFilePath = path.join(folderPath2, filePath2);
     // Check if the first slick-cell text is DOWN, then get all texts in the row
     // Get all rows in the table
     const rows = await page.$$('.slick-row');
@@ -235,12 +260,12 @@ async function captureAndGetDownReportEventConsole(page) {
 
     // Write all data to the file, separated by newlines
     if (data.length === 0) {
-        await fs.writeFile(filePath, 'N/A');
+        await fs.writeFile(outputFilePath, 'N/A');
         console.log('No "DOWN" records found, saved "N/A" to the file');
     } else {
         // Otherwise, save the collected data
-        await fs.writeFile(filePath, data.join('\n'));
-        console.log(`Data saved to ${filePath}`);
+        await fs.writeFile(outputFilePath, data.join('\n'));
+        console.log(`Data saved to ${outputFilePath}`);
     }
 }
 
@@ -250,6 +275,12 @@ function getTodayDate() {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}${month}${day}`; // Example: "20250210"
+}
+function getTodayDateDM() {
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${month}${day}`;
 }
 
 function getTodayDateInput() {
@@ -266,4 +297,14 @@ function getYesterdayDateInput() {
     const yesterdayMm = String(today.getMonth() + 1).padStart(2, '0'); // Add leading zero to month
     const yesterdayDd = String(today.getDate()).padStart(2, '0'); // Add leading zero to day
     return `${yesterdayYyyy}-${yesterdayMm}-${yesterdayDd}`;
+}
+
+function getTimestampForFileName() {
+    const now = new Date();
+    return now.toISOString().replace(/[:.-]/g, '');
+}
+
+function sanitizeForCSS(value) {
+    return value
+        .replace(/[^a-zA-Z0-9-_.]/g, '');
 }

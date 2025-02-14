@@ -1,0 +1,7 @@
+add select category: read from a text
+
+may be need select many child groups each times DONE
+
+hangul text in saved files' name
+
+refactor code
