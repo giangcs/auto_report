@@ -1,0 +1,44 @@
+npm install --save-dev @electron-forge/plugin-webpack
+
+Modify your package.json:
+
+"config": {
+  "forge": {
+    "plugins": [
+      ["@electron-forge/plugin-webpack", {
+        "mainConfig": "./webpack.main.config.js",
+        "renderer": {
+          "config": "./webpack.renderer.config.js"
+        }
+      }]
+    ]
+  }
+}
+
+
+Create webpack.main.config.js:
+module.exports = {
+    mode: 'production',
+    entry: './main.js',
+    target: 'electron-main',
+    output: {
+        filename: 'main.js',
+        path: __dirname + '/dist'
+    }
+};
+
+
+Create webpack.renderer.config.js:
+module.exports = {
+    mode: 'production',
+    entry: './src/index.js',
+    target: 'electron-renderer',
+    output: {
+        filename: 'renderer.js',
+        path: __dirname + '/dist'
+    }
+};
+
+Run the Build
+
+npx electron-forge make
