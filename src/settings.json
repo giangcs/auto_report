@@ -1,0 +1,7 @@
+{
+  "checkboxes": {
+    "a": true,
+    "b": false,
+    "c": false
+  }
+}

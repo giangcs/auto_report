@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electron Playwright</title>
+</head>
+<body>
+<h1>Electron Playwright App</h1>
+<label>
+    <label><input id="a" type="checkbox" class="runCheckbox" value="a"> Run Script A</label><br>
+    <label><input id="b" type="checkbox" class="runCheckbox" value="b"> Run Script B</label><br>
+    <label><input id="c" type="checkbox" class="runCheckbox" value="c"> Run Script C</label><br>
+
+</label>
+<button id="submitBtn">Submit</button>
+<pre id="output"></pre>
+
+<script>
+    const { ipcRenderer } = require('electron');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ipcRenderer.on('load-settings', (event, settings) => {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = settings.checkboxes[checkbox.id] || false;
+            });
+        });
+
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const checkedBoxes = {};
+                checkboxes.forEach(cb => {
+                    checkedBoxes[cb.id] = cb.checked;
+                });
+                ipcRenderer.send('save-settings', checkedBoxes);
+            });
+        });
+
+        document.getElementById('runScript').addEventListener('click', () => {
+            const checkedBoxes = {};
+            checkboxes.forEach(checkbox => {
+                checkedBoxes[checkbox.id] = checkbox.checked;
+            });
+
+            ipcRenderer.send('run-script', checkedBoxes);
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+npm install electron-updater
+
+Modify main.js
+
+const { autoUpdater } = require('electron-updater');
+
+app.whenReady().then(() => {
+    autoUpdater.checkForUpdatesAndNotify();
+});
+
+
+Configure package.json
+
+"build": {
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "giangcs",
+      "repo": "auto_report"
+    }
+  ]
+}
+
+
+npm run make
+

@@ -1,0 +1,26 @@
+tep 1: Install Electron Packager
+Run this in your project folder:
+
+npm install -g electron-packager
+or (if you prefer using npx without global install):
+
+npx electron-packager .
+✅ Step 2: Package Your App
+Run the following command in your project root:
+
+electron-packager . "MyApp" --platform=win32 --arch=x64 --out=dist --overwrite
+"MyApp" → Replace with your app’s name.
+--platform=win32 → For Windows (use darwin for macOS, linux for Linux).
+--arch=x64 → For 64-bit systems (use ia32 for 32-bit).
+--out=dist → The output folder.
+--overwrite → Overwrites existing builds.
+✅ Step 3: Create an Installer (Optional)
+If you want an installer instead of a folder with .exe files, use electron-installer-windows:
+
+npm install -g electron-installer-windows
+electron-installer-windows --src dist/MyApp-win32-x64/ --dest dist/installer/
+This generates an installer .exe file.
+✅ Step 4: Send to Your Customer
+Zip the dist/MyApp-win32-x64 folder and send it.
+If you created an installer, send the .exe file instead.
+Your customer can then run the app by opening MyApp.exe inside the folder.
