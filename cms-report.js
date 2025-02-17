@@ -4,8 +4,7 @@ const selectedGroups = process.argv.slice(2);
 console.log('Selected Groups:', selectedGroups);
 
 (async () => {
-    // // INPUT EXPECTED GROUP NAME
-    // let filePath = './organizationGroupInput.txt';
+
     const groups = await getParentChildGroups(selectedGroups);
 
     const browser = await chromium.launch({ headless: false });
@@ -75,16 +74,22 @@ async function selectParentAndChildGroup(page, parentGroup, childGroup) {
         console.log(`${parentGroup} span not found`);
     }
 
-    const childCheckboxValue = `^${parentGroup}^1/${childGroup}`;
-    console.log(`Waiting for checkbox with value containing ${childCheckboxValue}...`);
 
-    await page.waitForSelector(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
+    if(childGroup == 'ALL'){
 
-    // Log before clicking the checkbox
-    console.log(`Clicking the checkbox with value: ${childCheckboxValue}`);
+    } else {
+        // IF SINGLE CHILD GROUP
+        const childCheckboxValue = `^${parentGroup}^1/${childGroup}`;
+        console.log(`Waiting for checkbox with value containing ${childCheckboxValue}...`);
 
-    // Click the checkbox for the child group
-    await page.click(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
+        await page.waitForSelector(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
+
+        // Log before clicking the checkbox
+        console.log(`Clicking the checkbox with value: ${childCheckboxValue}`);
+
+        // Click the checkbox for the child group
+        await page.click(`input[name="check_common_item"][value*="${childCheckboxValue}"]`);
+    }
 
     // click button save group
     await page.click('#common_group_apply_btn');

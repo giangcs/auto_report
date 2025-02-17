@@ -5,3 +5,10 @@ may be need select many child groups each times DONE
 hangul text in saved files' name
 
 refactor code
+
+NEXT WEEK
+
+select multiple group
+select host dir to save files
+save selected
+PUT CODE FILE TO SRC FOLDER

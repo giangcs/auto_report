@@ -1,4 +1,4 @@
-# Workflow: Event Console & History Processing
+# Workflow: Event Console & History Report
 
 ## 1. Input Expected Group Name
 
