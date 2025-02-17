@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Groups</title>
+  <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      label { display: block; font-size: 16px; margin-bottom: 8px; color: #333; }
+      input[type="checkbox"] { margin-right: 10px; }
+      .group { font-weight: bold; color: #007BFF; }
+      .separator { padding: 0 5px; color: #ff6600; font-weight: bold; }
+      #runScript {
+          background-color: #4CAF50; /* Green */
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          font-size: 16px;
+          cursor: pointer;
+          border-radius: 5px;
+      }
+
+      #runScript:disabled {
+          background-color: #ccc; /* Light grey */
+          cursor: not-allowed;
+      }
+  </style>
+</head>
+<body>
+<h2>Select Groups:</h2>
+
+<label><input type="checkbox" id="LGCNS-LandingZone-AWS" value="LGCNS/LandingZone-AWS"> <span class="group">LGCNS</span><span class="separator"> / </span>LandingZone-AWS</label>
+<label><input type="checkbox" id="LGCNS-Singlex" value="LGCNS/Singlex"> <span class="group">LGCNS</span><span class="separator"> / </span>Singlex</label>
+<label><input type="checkbox" id="LGCNS-WIRE_ITSM" value="LGCNS/WIRE_ITSM"> <span class="group">LGCNS</span><span class="separator"> / </span>WIRE_ITSM</label>
+<label><input type="checkbox" id="LGCNS-CloudXper" value="LGCNS/CloudXper"> <span class="group">LGCNS</span><span class="separator"> / </span>CloudXper</label>
+<label><input type="checkbox" id="hanwhalifefs-ALL" value="hanwhalifefs/ALL"> <span class="group">hanwhalifefs</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="LGCNS-HWGI" value="LGCNS/HWGI"> <span class="group">LGCNS</span><span class="separator"> / </span>HWGI</label>
+<label><input type="checkbox" id="Pantos-GCP" value="Pantos/GCP"> <span class="group">Pantos</span><span class="separator"> / </span>GCP</label>
+<label><input type="checkbox" id="DNO-ALL" value="DNO/ALL"> <span class="group">DNO</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="SNI-ALL" value="SNI/ALL"> <span class="group">SNI</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="XICNA-ALL" value="XICNA/ALL"> <span class="group">XICNA</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="LGCC-ALL" value="LGCC/ALL"> <span class="group">LGCC</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="Dongwha-ALL" value="Dongwha/ALL"> <span class="group">Dongwha</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="Pantos-LSP_Pantos" value="Pantos/LSP_Pantos"> <span class="group">Pantos</span><span class="separator"> / </span>LSP_Pantos</label>
+<label><input type="checkbox" id="KOREARATINGS-ALL" value="KOREARATINGS/ALL"> <span class="group">KOREARATINGS</span><span class="separator"> / </span>ALL</label>
+<label><input type="checkbox" id="CorpLG-LG_Careers" value="Corp.LG/LG_Careers"> <span class="group">Corp.LG</span><span class="separator"> / </span>LG_Careers</label>
+<label><input type="checkbox" id="CorpLG-LX_Careers" value="Corp.LG/LX_Careers"> <span class="group">Corp.LG</span><span class="separator"> / </span>LX_Careers</label>
+<label><input type="checkbox" id="LG_Sports-LG_Sports" value="LG_Sports/LG_Sports"> <span class="group">LG_Sports</span><span class="separator"> / </span>LG_Sports</label>
+<label><input type="checkbox" id="Pantos-LSP_Lges" value="Pantos/LSP_Lges"> <span class="group">Pantos</span><span class="separator"> / </span>LSP_Lges</label>
+
+<button id="runScript" disabled>Get report</button>
+
+<script>
+    const { ipcRenderer } = require('electron');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        ipcRenderer.on('load-settings', (event, settings) => {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = settings.checkboxes[checkbox.id] || false;
+            });
+            toggleButton();  // Ensure the button is correctly enabled/disabled
+        });
+
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const checkedBoxes = {};
+                checkboxes.forEach(cb => {
+                    checkedBoxes[cb.id] = cb.checked;
+                });
+                ipcRenderer.send('save-settings', checkedBoxes);
+                toggleButton();  // Check if any checkbox is selected to enable the button
+            });
+        });
+    });
+
+    document.getElementById('runScript').addEventListener('click', () => {
+        const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.value);
+
+        ipcRenderer.send('run-playwright', selectedValues); // Send values to the main process
+    });
+
+    function toggleButton() {
+        const anyChecked = document.querySelector('input[type="checkbox"]:checked');
+        const button = document.getElementById('runScript');
+        button.disabled = !anyChecked;
+    }
+</script>
+</body>
+</html>

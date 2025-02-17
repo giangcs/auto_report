@@ -1,21 +1,33 @@
-// main.js
-const { app, BrowserWindow, ipcMain, Menu } = require('electron');
-const { exec } = require('child_process');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 
-let mainWindow;
-let qrWindow;
 const settingsFile = path.join(__dirname, 'settings.json');
 
-const { autoUpdater } = require('electron-updater');
+let mainWindow;
 
 app.whenReady().then(() => {
-    autoUpdater.checkForUpdatesAndNotify();
+    mainWindow = new BrowserWindow({
+        width: 800,
+        height: 800,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    mainWindow.loadFile('src/select-group.html');
+
+    // Send saved settings to renderer
+    mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.webContents.send('load-settings', loadSettings());
+    });
 });
 
-
-// Load saved checkbox state
+ipcMain.on('save-settings', (event, checkedBoxes) => {
+    saveSettings({ checkboxes: checkedBoxes });
+});
 function loadSettings() {
     try {
         if (fs.existsSync(settingsFile)) {
@@ -35,81 +47,15 @@ function saveSettings(settings) {
         console.error('Error saving settings:', error);
     }
 }
-app.whenReady().then(() => {
-    mainWindow = new BrowserWindow({
-        width: 600,
-        height: 400,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-        }
-    });
 
-    mainWindow.loadFile(path.resolve(__dirname, 'index.html'));
+// Receive the selected values from the UI and run the Playwright script
+ipcMain.on('run-playwright', (event, selectedGroups) => {
+    console.log('User selected:', selectedGroups);
 
-    // Send saved settings to renderer
-    mainWindow.webContents.once('did-finish-load', () => {
-        mainWindow.webContents.send('load-settings', loadSettings());
-    });
+    // Run the Playwright script and pass the selected values
+    const script = spawn('node', ['src/cms-report.js', ...selectedGroups]);
 
-
-    //MENU
-    const openQRWindow = () => {
-        if (qrWindow) {
-            qrWindow.focus();
-            return;
-        }
-
-        qrWindow = new BrowserWindow({
-            width: 300,
-            height: 300,
-            resizable: false,
-            title: "Donate Me ❤️",
-            autoHideMenuBar: true, // Hide menu in QR window
-            webPreferences: {
-                nodeIntegration: true
-            }
-        });
-
-        qrWindow.loadFile(path.resolve(__dirname, 'src/qr.html')); // Create this file with an <img> tag
-
-        qrWindow.on('closed', () => {
-            qrWindow = null;
-        });
-    };
-
-    // Define the menu
-    const menu = Menu.buildFromTemplate([
-        {
-            label: 'Donate Me ❤️',
-            click: openQRWindow // Open QR code window
-        }
-    ]);
-
-    // Set the menu
-    Menu.setApplicationMenu(menu);
-});
-
-ipcMain.on('run-script', (event, checkedBoxes) => {
-    saveSettings({ checkboxes: checkedBoxes });
-
-    if (Object.values(checkedBoxes).includes(true)) {
-        exec(`node src/script.js ${JSON.stringify(checkedBoxes)}`, (error, stdout, stderr) => {
-            if (error) {
-                event.reply('script-output', `Error: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                event.reply('script-output', `Stderr: ${stderr}`);
-                return;
-            }
-            event.reply('script-output', `Success: ${stdout}`);
-        });
-    } else {
-        event.reply('script-output', 'No checkbox is checked.');
-    }
-});
-
-ipcMain.on('save-settings', (event, checkedBoxes) => {
-    saveSettings({ checkboxes: checkedBoxes });
+    script.stdout.on('data', (data) => console.log(`Playwright Output: ${data}`));
+    script.stderr.on('data', (data) => console.error(`Error: ${data}`));
+    script.on('close', (code) => console.log(`Script finished with code ${code}`));
 });
