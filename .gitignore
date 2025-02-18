@@ -9,3 +9,4 @@ event_status_down
 storage
 plan.txt
 dist
+src/settings.json
