@@ -2,10 +2,9 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
-
-const settingsFile = path.join(__dirname, 'settings.json');
-// Import the settings module
+const { autoUpdater } = require("electron-updater");
 const { loadSettings, saveSettings } = require('./settings.js');
+const { setupAutoUpdater } = require('./autoUpdater.js');
 
 let mainWindow;
 
@@ -30,13 +29,7 @@ function createWindow() {
 app.whenReady().then(() => {
     createWindow();
 
-    app.whenReady().then(() => {
-        if (BrowserWindow.getAllWindows().length === 0) createWindow();
-
-        // Check for updates
-        autoUpdater.checkForUpdates();
-
-    });
+    setupAutoUpdater();
 });
 
 // Quit the app when all windows are closed

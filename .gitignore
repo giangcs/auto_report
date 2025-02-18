@@ -10,3 +10,4 @@ storage
 plan.txt
 dist
 src/settings.json
+logs/main.log
