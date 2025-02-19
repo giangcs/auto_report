@@ -1,18 +1,21 @@
 // autoUpdater.js
-const { autoUpdater } = require("electron-updater");
-const log = require("electron-log");
+const { app } = require('electron');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
 const path = require('path');
-
-// Set up the log file path for auto-updater logs
-const logDirectory = path.join(__dirname, 'logs');
-// Create the logs directory if it doesn't exist
 const fs = require('fs');
+
+// Get the user data directory (this is a writable location for your app)
+const userDataPath = app.getPath('userData');
+const logDirectory = path.join(userDataPath, 'logs');
+
+// Create the logs directory if it doesn't exist
 if (!fs.existsSync(logDirectory)) {
     fs.mkdirSync(logDirectory, { recursive: true });
 }
 
+// Set up the log file path for auto-updater logs
 log.transports.file.resolvePath = () => path.join(logDirectory, 'main.log');
-
 // Listen to autoUpdater events and log information
 function setupAutoUpdater() {
     autoUpdater.on("update-available", () => {
