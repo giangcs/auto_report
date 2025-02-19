@@ -45,13 +45,29 @@ console.log('Selected Groups:', selectedGroups);
     // GO TO EVENT CONSOLE PAGE
     await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
 
-    await checkExcelEventConsole(page, groups);
+    let {downRpLink, imageLink} = await checkExcelEventConsole(page, groups);
 
     // Go to the eventHistory page
     await page.waitForSelector('a[href="/front/eventHistory.do"]'); // Wait for the link to be visible
     await page.click('a[href="/front/eventHistory.do"]'); // Click on the link
 
-    await checkEventHistory(page, groups);
+    let {downloadFilePath} = await checkEventHistory(page, groups);
+
+    // Generate the email content
+    const emailContent = await generateEmailContent(
+        groups[0].parentGroup,
+        getStartDateInput(),
+        getEndDateInput(),
+        downRpLink,
+        imageLink,
+        downloadFilePath
+    );
+
+    // Save the email content to a file
+    let today = getTodayDateDM();
+
+    const emailFileName = `${today}_${groups[0].parentGroup}_email_content.txt`;
+    await saveEmailContent(emailContent.content, emailFileName);
 
     await page.click('a[href="/front/eventConsole.do"]'); // Click on the link
     await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
@@ -174,7 +190,7 @@ async function checkExcelEventConsole(page, groups) {
     await page.click('button[data-toggle="collapse"][aria-controls="eventSearchBar"]');
 
     // Call the function
-    await captureAndGetDownReportEventConsole(page, groups[0].parentGroup);
+    return await captureAndGetDownReportEventConsole(page, groups[0].parentGroup);
 
 }
 async function checkEventHistory(page, groups) {
@@ -207,7 +223,7 @@ async function checkEventHistory(page, groups) {
     await page.click('.btn-actions-pane-right button.btn-info');
     await page.waitForTimeout(3000);
     // DOWNLOAD FILE
-    await downloadFile(page, groups[0].parentGroup);
+    return await downloadFile(page, groups[0].parentGroup);
 }
 async function captureAndGetDownReportEventConsole(page, groupName) {
     // SCREENSHOT
@@ -266,6 +282,12 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
         await fs.writeFile(outputFilePath, data.join('\n'));
         console.log(`Data saved to ${outputFilePath}`);
     }
+
+    return {
+        downRpLink: `${outputFilePath}`,
+        imageLink: `${screenshotFilePath}`
+    }
+
 }
 
 async function downloadFile(page, groupName) {
@@ -295,6 +317,10 @@ async function downloadFile(page, groupName) {
     // Add a simple delay to allow the file to downloads
     await page.waitForTimeout(5000); // Wait for 5 seconds for the file to be downloaded
     console.log("Download should have finished.");
+
+    return {
+        downloadFilePath: `${downloadFilePath}`
+    };
 }
 
 const fs = require('fs').promises;
@@ -346,4 +372,50 @@ function getTimestampForFileName() {
 function sanitizeForCSS(value) {
     return value
         .replace(/[^a-zA-Z0-9-_.]/g, '');
+}
+
+async function saveEmailContent(content, fileName) {
+    // Define the file path (you can set a dynamic path if necessary)
+    const emailFolderPath = path.join(__dirname, '..', 'storage', 'emails');
+    await fs.mkdir(emailFolderPath, { recursive: true });
+
+    const filePath = path.join(emailFolderPath, fileName);
+
+    // Write the email content to the file
+    try {
+        await fs.writeFile(filePath, content);
+        console.log(`Email content saved successfully at: ${filePath}`);
+    } catch (error) {
+        console.error('Error saving email content:', error);
+    }
+}
+
+async function generateEmailContent(groupName, startDate, endDate, downRpLink, imageLink, downloadFilePath) {
+    const title = `CMS event history of ${groupName}_${startDate} 9시 -> ${endDate} 9시`;
+    let downFileContent = '';
+    try {
+        downFileContent = await fs.readFile(downRpLink, 'utf-8');
+    } catch (error) {
+        console.error(`Error reading the DOWN file at ${downRpLink}:`, error);
+        downFileContent = 'No content available for the DOWN file.';
+    }
+    const content = `
+    TITLE: 
+    ${title}
+    CONTENT:
+    ${downloadFilePath}
+    
+    Hello, This is Giang from LG CNS Vietnam Build Center
+    
+    I would like to send you the report of occurred events of ${groupName} from 9:00 ${startDate} to 9:00 ${endDate}.
+
+    ${downFileContent}
+
+    And besides that, I would like to send you unresolved event status of ${groupName}.
+    ${imageLink}
+
+     
+    `;
+
+    return { content };
 }
