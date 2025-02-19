@@ -44,6 +44,11 @@ app.on('window-all-closed', () => {
     }
 });
 
+// Listen for log messages from the renderer process (test.js)
+ipcMain.on('log-message', (event, message) => {
+    logToFile(message); // Write the message to the log file
+});
+
 // Run Playwright script when button is clicked
 ipcMain.on('run-playwright', (event) => {
     logToFile('Running Playwright script...');

@@ -8,7 +8,16 @@ refactor code
 
 NEXT WEEK
 
-select multiple group
-select host dir to save files
-save selected
-PUT CODE FILE TO SRC FOLDER
+select multiple group done
+select host dir to save files done
+save selected done
+PUT CODE FILE TO SRC FOLDER done
+
+Thu 2 bao caos tu 9h thu 6 done
+password va tai khoan de o dau?
+input cho tai khaon va password nua
+lamf xong 1 nhon thi dont close, just ve man hih done, neu click nhieu nhom lien tuc done
+sucess notification (chua lamf duoc, kh can toi uu trai nghiem ngdung
+generate email content done
+folder log soa lai o tron src done
+test voi app version

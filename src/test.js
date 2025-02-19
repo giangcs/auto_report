@@ -1,27 +1,16 @@
-const { chromium } = require('playwright');
-const path = require('path');
-const log = require('electron-log');
-const fs = require('fs');
-const {app} = require("electron");
-const fs1 = require('fs').promises;
+const { ipcRenderer } = require('electron'); // Import ipcRenderer
 
-const { spawn } = require('child_process');
-
-// Define log path using app.getPath('userData')
-const logDirectory = path.join(app.getPath('userData'), 'logs');
-const logFilePath = path.join(logDirectory, 'process-script.txt');
-
-function logToFile(message) {
-    const timestamp = new Date().toISOString(); // Add a timestamp
-    const logMessage = `[${timestamp}] ${message}\n`;
-    fs.appendFileSync(logFilePath, logMessage); // Append message to the file
+// Send log message to the main process
+function logToMainProcess(message) {
+    ipcRenderer.send('log-message', message);
 }
 
 (async () => {
-    logToFile("I'm in")
+    logToMainProcess("I'm in"); // Send a log message to the main process
+
     try {
+        const { chromium } = require('playwright');
         const browser = await chromium.launch({ headless: false });
-        // log.info('Browser launched.');
 
         const contexts = await browser.contexts();
         let page;
@@ -31,10 +20,9 @@ function logToFile(message) {
         await page.fill('#login_id', 'GDC_COMMON');
         await page.fill('#passwd', '1234qwer!');
 
-        // Check if there's an existing page to avoid relogging
-
-        // log.info('Script execution finished.');
+        // Log after successful login
+        logToMainProcess("Login successful");
     } catch (error) {
-        // log.error('Error during script execution:', error);
+        logToMainProcess("Error during script execution: " + error.message); // Send error to main process
     }
 })();

@@ -6,7 +6,7 @@ const {app} = require("electron");
 const fs1 = require('fs').promises;
 
 // Set up the log file path for process-script.log
-const userDataPath = app.getPath('userData');
+const userDataPath = path.join(__dirname, 'userData')
 const logDirectory = path.join(userDataPath, 'logs');
 
 // Create the logs directory if it doesn't exist

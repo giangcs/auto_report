@@ -15,7 +15,7 @@ if (!fs.existsSync(logDirectory)) {
 }
 
 // Set up the log file path for auto-updater logs
-log.transports.file.resolvePath = () => path.join(logDirectory, 'main.log');
+log.transports.file.resolvePathFn = () => path.join(logDirectory, 'main.log');
 // Listen to autoUpdater events and log information
 function setupAutoUpdater() {
     autoUpdater.on("update-available", () => {
