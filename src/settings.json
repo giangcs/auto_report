@@ -5,7 +5,6 @@
     "LGCNS-WIRE_ITSM": false,
     "LGCNS-CloudXper": false,
     "hanwhalifefs-ALL": false,
-    "LGCNS-HWGI": false,
     "Pantos-GCP": false,
     "DNO-ALL": false,
     "SNI-ALL": false,
@@ -14,7 +13,7 @@
     "Dongwha-ALL": false,
     "Pantos-LSP_Pantos": false,
     "KOREARATINGS-ALL": false,
-    "CorpLG-LG_Careers": false,
+    "CorpLG-LG_Careers": true,
     "CorpLG-LX_Careers": false,
     "LG_Sports-LG_Sports": false,
     "Pantos-LSP_Lges": false

@@ -1,94 +1,80 @@
 const { chromium } = require('playwright');
-const path = require('path');
-const log = require('electron-log');
-const fs = require('fs');
-const {app} = require("electron");
-const fs1 = require('fs').promises;
-
-// Set up the log file path for process-script.log
-const userDataPath = app.getPath('userData');
-const logDirectory = path.join(userDataPath, 'logs');
-
-// Create the logs directory if it doesn't exist
-if (!fs.existsSync(logDirectory)) {
-    fs.mkdirSync(logDirectory, { recursive: true });
-}
-
-// Set up the log file path for auto-updater logs
-log.transports.file.resolvePath = () => path.join(logDirectory, 'process-script.log');
-
-// Log the start of the script execution
-log.info('Playwright script started.');
 
 const selectedGroups = process.argv.slice(2);
-log.info('Selected Groups:', selectedGroups);
+console.log('Selected Groups:', selectedGroups);
 
 (async () => {
-    try {
-        // Get parent-child groups
-        const groups = await getParentChildGroups(selectedGroups);
-        log.info('Groups loaded:', groups);
 
-        const browser = await chromium.launch({ headless: false });
-        log.info('Browser launched.');
+    const groups = await getParentChildGroups(selectedGroups);
 
-        const contexts = await browser.contexts();
-        let page;
+    const browser = await chromium.launch({ headless: false });
 
-        // Check if there's an existing page to avoid relogging
-        if (contexts.length > 0) {
-            const context = contexts[0];
-            const pages = await context.pages();
-            const existingPage = pages.find(p => p.url() === 'https://console.cms.lgcns.com/front/eventConsole.do');
-            if (existingPage) {
-                log.info('Found an existing page, no need to log in again.');
-                page = existingPage;
-            }
+    const contexts = await browser.contexts(); // Get all browser contexts
+    let page;
+
+    // Ensure the context exists and retrieve pages
+    if (contexts.length > 0) {
+        const context = contexts[0]; // Get the first context
+        const pages = await context.pages(); // Get all pages in that context
+
+        // Check if there's an existing page with the desired URL
+        const existingPage = pages.find(p => p.url() === 'https://console.cms.lgcns.com/front/eventConsole.do');
+
+        if (existingPage) {
+            console.log("Found an existing page, no need to log in again.");
+            page = existingPage; // Use the existing page
         }
-
-        // If no page, log in
-        if (!page) {
-            log.info('No existing page found. Opening a new page and logging in...');
-            page = await browser.newPage();
-            await page.goto('https://console.cms.lgcns.com/login.do');
-            await page.fill('#login_id', 'GDC_COMMON');
-            await page.fill('#passwd', '1234qwer!');
-            await page.click('button[type="submit"]');
-            await page.waitForSelector('a[href="/front/eventConsole.do"]');
-            log.info('Logged in successfully.');
-        }
-
-        // Close unwanted pages
-        await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do');
-
-        // Perform tasks
-        let { downRpLink, imageLink } = await checkExcelEventConsole(page, groups);
-        log.info('Checked Excel event console.');
-
-        await page.waitForSelector('a[href="/front/eventHistory.do"]');
-        await page.click('a[href="/front/eventHistory.do"]');
-        log.info('Navigated to Event History page.');
-
-        let { downloadFilePath } = await checkEventHistory(page, groups);
-        log.info('Checked Event History.');
-
-        // Generate email content
-        const emailContent = await generateEmailContent(groups[0].parentGroup, getStartDateInput(), getEndDateInput(), downRpLink, imageLink, downloadFilePath);
-
-        // Save email content to file
-        const today = getTodayDateDM();
-        const emailFileName = `${today}_${groups[0].parentGroup}_email_content.txt`;
-        await saveEmailContent(emailContent.content, emailFileName);
-        log.info('Email content saved to file.');
-
-        // Click the return link and close unwanted pages again
-        await page.click('a[href="/front/eventConsole.do"]');
-        await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do');
-
-        log.info('Script execution finished.');
-    } catch (error) {
-        log.error('Error during script execution:', error);
     }
+
+    if (!page) {
+        // If no page exists, create a new page
+        console.log("No existing page found. Opening a new page and logging in...");
+        page = await browser.newPage();
+
+        // Login procedure if page doesn't exist
+        await page.goto('https://console.cms.lgcns.com/login.do');
+        await page.fill('#login_id', 'GDC_COMMON');
+        await page.fill('#passwd', '1234qwer!');
+        await page.click('button[type="submit"]');
+
+        // Wait for the page to load after login
+        await page.waitForSelector('a[href="/front/eventConsole.do"]');
+        console.log("Logged in successfully.");
+    }
+
+    // GO TO EVENT CONSOLE PAGE
+    await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
+
+    let {downRpLink, imageLink} = await checkExcelEventConsole(page, groups);
+
+    // Go to the eventHistory page
+    await page.waitForSelector('a[href="/front/eventHistory.do"]'); // Wait for the link to be visible
+    await page.click('a[href="/front/eventHistory.do"]'); // Click on the link
+
+    let {downloadFilePath} = await checkEventHistory(page, groups);
+
+    // Generate the email content
+    const emailContent = await generateEmailContent(
+        groups[0].parentGroup,
+        getStartDateInput(),
+        getEndDateInput(),
+        downRpLink,
+        imageLink,
+        downloadFilePath
+    );
+
+    // Save the email content to a file
+    let today = getTodayDateDM();
+
+    const emailFileName = `${today}_${groups[0].parentGroup}_email_content.txt`;
+    await saveEmailContent(emailContent.content, emailFileName);
+
+    await page.click('a[href="/front/eventConsole.do"]'); // Click on the link
+    await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
+
+    await page.waitForTimeout(3);
+
+    console.log('Script execution finished.');
 })();
 
 // eventConsole page all open an unused window=> this function to delete it
@@ -247,7 +233,7 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
     const timestamp = getTimestampForFileName();
     const folderPath = path.join(path.resolve(__dirname, '..'), '/storage/screenshots', todayDate);
 
-    await fs1.mkdir(folderPath, { recursive: true });
+    await fs.mkdir(folderPath, { recursive: true });
 
     // Define the screenshot filename (based on your desired format)
     const screenshotFileName = `${timestamp}_${groupName}_event_status.png`;
@@ -259,7 +245,7 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
 
     // GET DOWN RECORD
     const folderPath2 = path.join(path.resolve(__dirname, '..'), '/storage/event_status_down', todayDate);
-    await fs1.mkdir(folderPath2, { recursive: true });
+    await fs.mkdir(folderPath2, { recursive: true });
     let filePath2 = `${timestamp}_${groupName}_output_DOWN_data.txt`;
     const outputFilePath = path.join(folderPath2, filePath2);
     // Check if the first slick-cell text is DOWN, then get all texts in the row
@@ -289,11 +275,11 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
 
     // Write all data to the file, separated by newlines
     if (data.length === 0) {
-        await fs1.writeFile(outputFilePath, 'N/A');
+        await fs.writeFile(outputFilePath, 'N/A');
         console.log('No "DOWN" records found, saved "N/A" to the file');
     } else {
         // Otherwise, save the collected data
-        await fs1.writeFile(outputFilePath, data.join('\n'));
+        await fs.writeFile(outputFilePath, data.join('\n'));
         console.log(`Data saved to ${outputFilePath}`);
     }
 
@@ -336,6 +322,10 @@ async function downloadFile(page, groupName) {
         downloadFilePath: `${downloadFilePath}`
     };
 }
+
+const fs = require('fs').promises;
+const path = require('path');
+const {promises: fs1} = require("fs");
 
 function getTodayDate() {
     const now = new Date();
@@ -387,13 +377,13 @@ function sanitizeForCSS(value) {
 async function saveEmailContent(content, fileName) {
     // Define the file path (you can set a dynamic path if necessary)
     const emailFolderPath = path.join(__dirname, '..', 'storage', 'emails');
-    await fs1.mkdir(emailFolderPath, { recursive: true });
+    await fs.mkdir(emailFolderPath, { recursive: true });
 
     const filePath = path.join(emailFolderPath, fileName);
 
     // Write the email content to the file
     try {
-        await fs1.writeFile(filePath, content);
+        await fs.writeFile(filePath, content);
         console.log(`Email content saved successfully at: ${filePath}`);
     } catch (error) {
         console.error('Error saving email content:', error);
@@ -404,7 +394,7 @@ async function generateEmailContent(groupName, startDate, endDate, downRpLink, i
     const title = `CMS event history of ${groupName}_${startDate} 9시 -> ${endDate} 9시`;
     let downFileContent = '';
     try {
-        downFileContent = await fs1.readFile(downRpLink, 'utf-8');
+        downFileContent = await fs.readFile(downRpLink, 'utf-8');
     } catch (error) {
         console.error(`Error reading the DOWN file at ${downRpLink}:`, error);
         downFileContent = 'No content available for the DOWN file.';
