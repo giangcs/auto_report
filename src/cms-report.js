@@ -185,7 +185,7 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
     // Get today's date and folder path
     const todayDate = getTodayDate();
     const timestamp = getTimestampForFileName();
-    const folderPath = path.join(__dirname, '/storage/screenshots', todayDate);
+    const folderPath = path.join(path.resolve(__dirname, '..'), '/storage/screenshots', todayDate);
 
     await fs.mkdir(folderPath, { recursive: true });
 
@@ -198,7 +198,7 @@ async function captureAndGetDownReportEventConsole(page, groupName) {
     console.log(`Screenshot saved successfully at: ${screenshotFilePath}`);
 
     // GET DOWN RECORD
-    const folderPath2 = path.join(__dirname, '/storage/event_status_down', todayDate);
+    const folderPath2 = path.join(path.resolve(__dirname, '..'), '/storage/event_status_down', todayDate);
     await fs.mkdir(folderPath2, { recursive: true });
     let filePath2 = `${timestamp}_${groupName}_output_DOWN_data.txt`;
     const outputFilePath = path.join(folderPath2, filePath2);
@@ -242,7 +242,7 @@ async function downloadFile(page, groupName) {
     const fs1 = require('fs').promises;
     const todayDate = getTodayDate();
     const todayDateDM = getTodayDateDM();
-    const downloadPath = path.join(__dirname, 'storage/downloads_excel', todayDate);
+    const downloadPath = path.join(path.resolve(__dirname, '..'), 'storage/downloads_excel', todayDate);
 
     await fs1.mkdir(downloadPath, { recursive: true });
 
