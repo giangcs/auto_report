@@ -8,13 +8,39 @@ console.log('Selected Groups:', selectedGroups);
     const groups = await getParentChildGroups(selectedGroups);
 
     const browser = await chromium.launch({ headless: false });
-    const page = await browser.newPage();
 
-    // LOGIN PAGE
-    await page.goto('https://console.cms.lgcns.com/login.do');
-    await page.fill('#login_id', 'GDC_COMMON');
-    await page.fill('#passwd', '1234qwer!');
-    await page.click('button[type="submit"]');
+    const contexts = await browser.contexts(); // Get all browser contexts
+    let page;
+
+    // Ensure the context exists and retrieve pages
+    if (contexts.length > 0) {
+        const context = contexts[0]; // Get the first context
+        const pages = await context.pages(); // Get all pages in that context
+
+        // Check if there's an existing page with the desired URL
+        const existingPage = pages.find(p => p.url() === 'https://console.cms.lgcns.com/front/eventConsole.do');
+
+        if (existingPage) {
+            console.log("Found an existing page, no need to log in again.");
+            page = existingPage; // Use the existing page
+        }
+    }
+
+    if (!page) {
+        // If no page exists, create a new page
+        console.log("No existing page found. Opening a new page and logging in...");
+        page = await browser.newPage();
+
+        // Login procedure if page doesn't exist
+        await page.goto('https://console.cms.lgcns.com/login.do');
+        await page.fill('#login_id', 'GDC_COMMON');
+        await page.fill('#passwd', '1234qwer!');
+        await page.click('button[type="submit"]');
+
+        // Wait for the page to load after login
+        await page.waitForSelector('a[href="/front/eventConsole.do"]');
+        console.log("Logged in successfully.");
+    }
 
     // GO TO EVENT CONSOLE PAGE
     await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
@@ -159,20 +185,24 @@ async function checkEventHistory(page, groups) {
     }
     await clickApplyGroup(page)
     // filter time
-    let todayDate = getTodayDateInput();
-    await page.evaluate((todayDate) => {
-        document.querySelector('input[id="sdate"]').value = todayDate;
-    }, todayDate);
+    let startDate = getStartDateInput();
+    await page.evaluate((startDate) => {
+        document.querySelector('input[id="sdate"]').value = startDate;
+    }, startDate);
     await page.evaluate(() => {
         document.querySelector('#stime').value = '09:00'; // Set the new value
     });
-    let yesterdayDate = getYesterdayDateInput();
-    await page.evaluate((yesterdayDate) => {
-        document.querySelector('input[id="edate"]').value = yesterdayDate;
-    }, yesterdayDate);
+    let todayDate = getEndDateInput();
+    await page.evaluate((todayDate) => {
+        document.querySelector('input[id="edate"]').value = todayDate;
+    }, todayDate);
     await page.evaluate(() => {
         document.querySelector('#etime').value = '09:00'; // Set the new value
     });
+
+    console.log(startDate)
+    console.log(todayDate)
+
     // click search
     await page.click('.btn-actions-pane-right button.btn-info');
     await page.waitForTimeout(3000);
@@ -267,12 +297,6 @@ async function downloadFile(page, groupName) {
     console.log("Download should have finished.");
 }
 
-async function logElementOuterHTML(page, element) {
-    const elementHTML = await page.evaluate(element => element.outerHTML, element);
-    console.log('Found element:', elementHTML);  // Log the outer HTML of the element
-    return elementHTML;  // Return the outerHTML if needed
-}
-
 const fs = require('fs').promises;
 const path = require('path');
 const {promises: fs1} = require("fs");
@@ -291,20 +315,27 @@ function getTodayDateDM() {
     return `${month}${day}`;
 }
 
-function getTodayDateInput() {
+function getStartDateInput() {
+    const today = new Date();
+
+    if (today.getDay() === 1) {  // 1 represents Monday
+        today.setDate(today.getDate() - 3);  // Subtract 3 days to get Friday
+    } else {
+        // Otherwise, return yesterday's date
+        today.setDate(today.getDate() - 1);
+    }
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+
+    return `${yyyy}/${mm}/${dd}`;
+}
+function getEndDateInput() {
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0'); // Add leading zero to month
     const dd = String(today.getDate()).padStart(2, '0'); // Add leading zero to day
     return `${yyyy}/${mm}/${dd}`
-}
-function getYesterdayDateInput() {
-    const today = new Date();
-    today.setDate(today.getDate() - 1); // Subtract 1 day
-    const yesterdayYyyy = today.getFullYear();
-    const yesterdayMm = String(today.getMonth() + 1).padStart(2, '0'); // Add leading zero to month
-    const yesterdayDd = String(today.getDate()).padStart(2, '0'); // Add leading zero to day
-    return `${yesterdayYyyy}-${yesterdayMm}-${yesterdayDd}`;
 }
 
 function getTimestampForFileName() {
