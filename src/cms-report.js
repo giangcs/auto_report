@@ -15,7 +15,7 @@ if (!fs.existsSync(logDirectory)) {
 }
 
 // Set up the log file path for auto-updater logs
-log.transports.file.resolvePath = () => path.join(logDirectory, 'process-script.log');
+log.transports.file.resolvePathFn = () => path.join(logDirectory, 'process-script.log');
 
 // Log the start of the script execution
 log.info('Playwright script started.');
@@ -23,7 +23,7 @@ log.info('Playwright script started.');
 const selectedGroups = process.argv.slice(2);
 log.info('Selected Groups:', selectedGroups);
 
-(async () => {
+async function runPlaywright() {
     try {
         // Get parent-child groups
         const groups = await getParentChildGroups(selectedGroups);
@@ -89,8 +89,8 @@ log.info('Selected Groups:', selectedGroups);
     } catch (error) {
         log.error('Error during script execution:', error);
     }
-})();
-
+};
+module.exports = runPlaywright;
 // eventConsole page all open an unused window=> this function to delete it
 async function closeUnwantedPages(page, browser, allowedUrl) {
     await page.waitForURL(allowedUrl);
