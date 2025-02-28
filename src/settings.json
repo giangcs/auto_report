@@ -13,8 +13,8 @@
     "Dongwha-ALL": false,
     "Pantos-LSP_Pantos": false,
     "KOREARATINGS-ALL": false,
-    "CorpLG-LG_Careers": false,
-    "CorpLG-LX_Careers": true,
+    "CorpLG-LG_Careers": true,
+    "CorpLG-LX_Careers": false,
     "LG_Sports-LG_Sports": false,
     "Pantos-LSP_Lges": false
   }
