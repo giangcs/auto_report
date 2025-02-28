@@ -24,8 +24,6 @@ const selectedGroups = process.argv.slice(2);
 console.log('Selected Groups:', selectedGroups);
 
 async function runPlaywright() {
-    try {
-
     const groups = await getParentChildGroups(selectedGroups);
 
     const browser = await chromium.launch({ headless: false });
@@ -66,6 +64,9 @@ async function runPlaywright() {
     // GO TO EVENT CONSOLE PAGE
     await closeUnwantedPages(page, browser, 'https://console.cms.lgcns.com/front/eventConsole.do')
 
+    // Click the Close button
+    await page.click('button[onclick="closeNoticeBoardWin(1370)"]');
+
     let {downRpLink, imageLink} = await checkExcelEventConsole(page, groups);
 
     // Go to the eventHistory page
@@ -96,7 +97,7 @@ async function runPlaywright() {
     await page.waitForTimeout(3);
 
     console.log('Script execution finished.');
-};
+}
 module.exports = runPlaywright;
 
 // eventConsole page all open an unused window=> this function to delete it
@@ -345,10 +346,6 @@ async function downloadFile(page, groupName) {
     };
 }
 
-const fs = require('fs').promises;
-const path = require('path');
-const {promises: fs1} = require("fs");
-
 function getTodayDate() {
     const now = new Date();
     const year = now.getFullYear();
@@ -440,4 +437,10 @@ async function generateEmailContent(groupName, startDate, endDate, downRpLink, i
     `;
 
     return { content };
+}
+
+async function logElementOuterHTML(page, element) {
+    const elementHTML = await page.evaluate(element => element.outerHTML, element);
+    console.log('Found element:', elementHTML);  // Log the outer HTML of the element
+    return elementHTML;  // Return the outerHTML if needed
 }

@@ -33,7 +33,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadFile('src/select-group-test.html');
+    mainWindow.loadFile('src/select-group.html');
 }
 
 app.whenReady().then(() => {
