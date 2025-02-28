@@ -1,9 +1,30 @@
 const { chromium } = require('playwright');
+const path = require('path');
+const log = require('electron-log');
+const fs = require('fs');
+const {app} = require("electron");
+const fs1 = require('fs').promises;
+
+// Set up the log file path for process-script.log
+const userDataPath = path.join(__dirname, 'userData')
+const logDirectory = path.join(userDataPath, 'logs');
+
+// Create the logs directory if it doesn't exist
+if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory, { recursive: true });
+}
+
+// Set up the log file path for auto-updater logs
+log.transports.file.resolvePathFn = () => path.join(logDirectory, 'process-script.log');
+
+// Log the start of the script execution
+log.info('Playwright script started.');
 
 const selectedGroups = process.argv.slice(2);
 console.log('Selected Groups:', selectedGroups);
 
-(async () => {
+async function runPlaywright() {
+    try {
 
     const groups = await getParentChildGroups(selectedGroups);
 
@@ -75,7 +96,8 @@ console.log('Selected Groups:', selectedGroups);
     await page.waitForTimeout(3);
 
     console.log('Script execution finished.');
-})();
+};
+module.exports = runPlaywright;
 
 // eventConsole page all open an unused window=> this function to delete it
 async function closeUnwantedPages(page, browser, allowedUrl) {
