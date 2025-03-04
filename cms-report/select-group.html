@@ -51,15 +51,17 @@
 <button id="runScript" disabled>Get report</button>
 
 <script>
-    const { ipcRenderer } = require('electron');
-
+    //
     document.addEventListener('DOMContentLoaded', () => {
-        ipcRenderer.on('load-settings', (event, settings) => {
+        window.electron.onLoadSettings((settings) => {
+            console.log("Received settings:", settings);
+
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
-                checkbox.checked = settings.checkboxes[checkbox.id] || false;
+                checkbox.checked = settings.checkboxes?.[checkbox.id] || false;
             });
-            toggleButton();  // Ensure the button is correctly enabled/disabled
+
+            toggleButton();
         });
 
         const checkboxes = document.querySelectorAll('input[type="checkbox"]');
@@ -69,8 +71,10 @@
                 checkboxes.forEach(cb => {
                     checkedBoxes[cb.id] = cb.checked;
                 });
-                ipcRenderer.send('save-settings', checkedBoxes);
-                toggleButton();  // Check if any checkbox is selected to enable the button
+
+                window.electron.saveSettings(checkedBoxes);
+
+                toggleButton();
             });
         });
     });
@@ -79,7 +83,8 @@
         const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
             .map(checkbox => checkbox.value);
 
-        ipcRenderer.send('run-playwright', selectedValues); // Send values to the main process
+        window.electron.runPlaywrightTest(selectedValues);
+
     });
 
     function toggleButton() {

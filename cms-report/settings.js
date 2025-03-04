@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Path to settings file
-const settingsFile = path.join(__dirname, 'settings.json');
+const settingsFile = path.join(__dirname, '..', 'settings.json');
 
 // Load settings from file
 function loadSettings() {

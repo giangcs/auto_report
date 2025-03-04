@@ -2,7 +2,7 @@
   "name": "CMSReportApp",
   "version": "6.0.9",
   "description": "A report generation app for CMS with event history export functionality",
-  "main": "src/main.js",
+  "main": "cms-report/main.js",
   "author": "G99",
   "scripts": {
     "start": "electron .",
