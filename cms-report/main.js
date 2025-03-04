@@ -36,9 +36,9 @@ app.whenReady().then(() => {
         await runPlaywrightTest(selectedValues);
     });
 
-    ipcMain.on('save-settings', (event, checkedBoxes) => {
+    ipcMain.on('save-settings', (event, remember_settings) => {
         log.info("Save settings");
-        saveSettings({ checkboxes: checkedBoxes });
+        saveSettings({ remember_settings });
     });
 
     setupAutoUpdater();

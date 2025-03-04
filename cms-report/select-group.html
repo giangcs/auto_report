@@ -29,6 +29,12 @@
 <body>
 <h2>Select Groups:</h2>
 
+<label for="username">Your Name:</label><input type="text" id="username" placeholder="Enter Your Name"><br><br>
+
+<label for="account">Account:</label><input type="text" id="account" placeholder="Enter Account"><br><br>
+
+<label for="password">Password:</label><input type="password" id="password" placeholder="Enter Password"><br><br>
+
 <label><input type="checkbox" id="LGCNS-LandingZone-AWS" value="LGCNS/LandingZone-AWS"> <span class="group">LGCNS</span><span class="separator"> / </span>LandingZone-AWS</label>
 <label><input type="checkbox" id="LGCNS-Singlex" value="LGCNS/Singlex"> <span class="group">LGCNS</span><span class="separator"> / </span>Singlex</label>
 <label><input type="checkbox" id="LGCNS-WIRE_ITSM" value="LGCNS/WIRE_ITSM"> <span class="group">LGCNS</span><span class="separator"> / </span>WIRE_ITSM</label>
@@ -51,47 +57,71 @@
 <button id="runScript" disabled>Get report</button>
 
 <script>
-    //
     document.addEventListener('DOMContentLoaded', () => {
+        console.log("Page Loaded: Waiting for settings...");
+
+        // Load saved settings when the page loads
         window.electron.onLoadSettings((settings) => {
             console.log("Received settings:", settings);
 
+            // Load text input fields
+            document.getElementById('username').value = settings.remember_settings.username || "";
+            document.getElementById('account').value = settings.remember_settings.account || "";
+            document.getElementById('password').value = settings.remember_settings.password || "";
+
+            // Load checkboxes
             const checkboxes = document.querySelectorAll('input[type="checkbox"]');
             checkboxes.forEach(checkbox => {
-                checkbox.checked = settings.checkboxes?.[checkbox.id] || false;
+                checkbox.checked = settings.remember_settings.checkboxes?.[checkbox.id] || false;
             });
 
-            toggleButton();
+            toggleButton(); // Ensure button state is updated
         });
 
-        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
+        // Save settings when checkboxes change
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', () => {
-                const checkedBoxes = {};
-                checkboxes.forEach(cb => {
-                    checkedBoxes[cb.id] = cb.checked;
-                });
-
-                window.electron.saveSettings(checkedBoxes);
-
+                saveSettings();
                 toggleButton();
             });
         });
+
+        // Save settings when text inputs change
+        document.querySelectorAll('input[type="text"], input[type="password"]').forEach(input => {
+            input.addEventListener('input', () => {
+                saveSettings();
+            });
+        });
+
+        document.getElementById('runScript').addEventListener('click', () => {
+            const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            console.log("Running Playwright Test with:", selectedValues);
+            window.electron.runPlaywrightTest(selectedValues);
+        });
+
+        function saveSettings() {
+            const settings = {
+                username: document.getElementById('username').value,
+                account: document.getElementById('account').value,
+                password: document.getElementById('password').value,
+                checkboxes: {}
+            };
+
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                settings.checkboxes[cb.id] = cb.checked;
+            });
+
+            window.electron.saveSettings(settings);
+        }
+
+        function toggleButton() {
+            const anyChecked = document.querySelector('input[type="checkbox"]:checked');
+            const button = document.getElementById('runScript');
+            button.disabled = !anyChecked;
+        }
     });
-
-    document.getElementById('runScript').addEventListener('click', () => {
-        const selectedValues = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(checkbox => checkbox.value);
-
-        window.electron.runPlaywrightTest(selectedValues);
-
-    });
-
-    function toggleButton() {
-        const anyChecked = document.querySelector('input[type="checkbox"]:checked');
-        const button = document.getElementById('runScript');
-        button.disabled = !anyChecked;
-    }
 </script>
 </body>
 </html>

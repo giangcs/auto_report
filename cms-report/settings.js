@@ -4,6 +4,7 @@ const path = require('path');
 const { app } = require('electron');
 
 // Path to settings file
+// const settingsFile = path.join(__dirname, '..', 'settings.json');
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
 // Load settings from file
@@ -15,7 +16,7 @@ function loadSettings() {
     } catch (error) {
         console.error('Error loading settings:', error);
     }
-    return { checkboxes: {} }; // Return default if no settings file exists
+    return { checkboxes: {}, username: "", account: "", password: "" };
 }
 
 // Save settings to file

@@ -6,8 +6,8 @@ const {app} = require("electron");
 const fs1 = require('fs').promises;
 
 async function runPlaywright(selectedGroups) {
+    console.log(selectedGroups)
     const groups = await getParentChildGroups(selectedGroups);
-    console.log(groups)
 
     const browser = await chromium.launch({ headless: false });
 
