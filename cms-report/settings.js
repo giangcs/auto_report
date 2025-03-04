@@ -1,9 +1,10 @@
 // settings.js
 const fs = require('fs');
 const path = require('path');
+const { app } = require('electron');
 
 // Path to settings file
-const settingsFile = path.join(__dirname, '..', 'settings.json');
+const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
 // Load settings from file
 function loadSettings() {
